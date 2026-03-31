@@ -1,5 +1,5 @@
 const express = require('express');
-const stripe = require('stripe')('sk_test_REPLACE_WITH_YOUR_KEY');
+const stripe = require('stripe')('mk_1SzY6qGbJqruQJFwx9Oie6wG');
 const cors = require('cors');
 
 const app = express();
