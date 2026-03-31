@@ -1,54 +1,59 @@
 const express = require('express');
-const stripe = require('stripe')('mk_1SzY6qGbJqruQJFwx9Oie6wG');
+const Stripe = require('stripe');
 const cors = require('cors');
 
 const app = express();
-app.use(cors());
 app.use(express.json());
+app.use(cors());
 
+// Initialize Stripe with secret key
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+
+const YOUR_DOMAIN = 'https://metroluxride.com';
+
+// Create Checkout Session
 app.post('/create-checkout-session', async (req, res) => {
-  const { amount, vehicle, pickup, dropoff, date, time, name, email, phone } = req.body;
-
   try {
-    const metadata = {
-      vehicle,
-      pickup,
-      dropoff,
-      date,
-      time,
-      customer_name: name,
-      customer_phone: phone,
-      customer_email: email
-    };
+    const { amount, vehicle, pickup, dropoff, date, time, name, email, phone } = req.body;
 
+    // Create checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [{
         price_data: {
           currency: 'usd',
           product_data: {
-            name: vehicle + ' - Airport Transfer',
-            description: pickup + ' to ' + dropoff + '\nDate: ' + date + ' at ' + time,
+            name: `Metro LuxRide - ${vehicle}`,
+            description: `${pickup} → ${dropoff}\n${date} at ${time}\nPassenger: ${name}`,
           },
-          unit_amount: Math.round(amount * 100),
+          unit_amount: Math.round(amount * 100), // Convert to cents
         },
         quantity: 1,
       }],
       mode: 'payment',
-      success_url: 'https://metroluxride.com/book?success=true',
-      cancel_url: 'https://metroluxride.com/book?canceled=true',
-      metadata: metadata,
+      success_url: `${YOUR_DOMAIN}/book?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${YOUR_DOMAIN}/book?canceled=true`,
+      customer_email: email,
+      metadata: {
+        vehicle,
+        pickup,
+        dropoff,
+        date,
+        time,
+        name,
+        phone,
+        amount: amount.toString()
+      }
     });
 
     res.json({ url: session.url });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error:', error.message);
+    // NEVER expose API key in response
+    res.status(500).json({ 
+      error: 'Payment processing failed. Please try again.' 
+    });
   }
 });
 
-app.get('/', (req, res) => {
-  res.send('Metro LuxRide Payment API is running');
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log('Server running on port ' + PORT));
+app.listen(3000, () => console.log('Server running on port 3000'));
