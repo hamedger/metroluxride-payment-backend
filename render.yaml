@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: metroluxride-payment
+    env: node
+    region: oregon
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: STRIPE_SECRET_KEY
+        sync: false
